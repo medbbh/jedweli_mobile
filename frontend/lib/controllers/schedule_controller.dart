@@ -6,37 +6,42 @@ class ScheduleController extends GetxController {
   final ScheduleService _scheduleService = Get.find<ScheduleService>();
 
   final RxList<ScheduleModel> _schedules = <ScheduleModel>[].obs;
-  final RxList<ScheduleModel> _favoriteSchedules = <ScheduleModel>[].obs;
   final Rxn<ScheduleModel> _selectedSchedule = Rxn<ScheduleModel>();
 
   List<ScheduleModel> get schedules => _schedules;
-  List<ScheduleModel> get favoriteSchedules => _favoriteSchedules;
+  // List<ScheduleModel> get favoriteSchedules => _favoriteSchedules;
   Rxn<ScheduleModel> get selectedSchedule => _selectedSchedule;
+  var favoriteSchedules = <ScheduleModel>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    fetchSchedules();
-    fetchFavorites();
+    // If you WANT to fetch immediately at app start, you can do:
+    // fetchSchedules();
+    // fetchFavoriteSchedules();
+  }
+
+  Future<void> refreshData() async {
+    await fetchSchedules();
+    await fetchFavoriteSchedules();
   }
 
   // ✅ Fetch all schedules
+    // ✅ Fetch all schedules
   Future<void> fetchSchedules() async {
     try {
       print("Fetching schedules from API...");
-
       final fetchedSchedules = await _scheduleService.fetchSchedules();
-
-      print("Fetched schedules count: ${fetchedSchedules.length}");
+      print("🌟Fetched schedules count🌟: ${fetchedSchedules.length}");
 
       if (fetchedSchedules.isNotEmpty) {
         _schedules.assignAll(fetchedSchedules);
         print("Schedules updated in controller.");
-
-        // Auto-select first schedule if none is selected
+        // Auto-select the first if none selected
         _selectedSchedule.value ??= _schedules.first;
       } else {
         print("No schedules found.");
+        _schedules.clear();
       }
     } catch (e) {
       print("Error fetching schedules: $e");
@@ -45,25 +50,37 @@ class ScheduleController extends GetxController {
   }
 
   // ✅ Fetch schedule by ID
-  Future<void> getScheduleById(int scheduleId) async {
+  Future<ScheduleModel?> getScheduleById(int scheduleId) async {
     try {
       final schedule = await _scheduleService.fetchScheduleById(scheduleId);
       if (schedule != null) {
         _selectedSchedule.value = schedule;
       }
+      return schedule;
     } catch (e) {
       Get.snackbar("Error", "Failed to fetch schedule: $e");
+      return null;
     }
   }
 
   // ✅ Fetch favorite schedules
-  Future<void> fetchFavorites() async {
+  Future<void> fetchFavoriteSchedules() async {
     try {
-      final fetchedFavorites = await _scheduleService.fetchFavorites();
-      _favoriteSchedules.assignAll(fetchedFavorites);
+      final favoriteEntries = await _scheduleService.getFavoriteEntries();
+      final favoriteIds = favoriteEntries.map((f) => f.scheduleId).toList();
+      final favoriteSchedulesList =
+          schedules.where((s) => favoriteIds.contains(s.id)).toList();
+      favoriteSchedules.assignAll(favoriteSchedulesList);
+      print("Fetched favorite schedules: ${favoriteSchedules.length}");
     } catch (e) {
-      Get.snackbar("Error", "Failed to load favorite schedules: $e");
+      print("Error fetching favorite schedules: $e");
+      Get.snackbar("Error", "Failed to fetch favorite schedules: $e");
     }
+  }
+
+  // ✅ check if in favorites
+  bool isFavorite(int scheduleId) {
+    return favoriteSchedules.any((s) => s.id == scheduleId);
   }
 
   // ✅ Select a schedule safely
@@ -96,23 +113,31 @@ class ScheduleController extends GetxController {
     }
   }
 
-  // ✅ Add a schedule to favorites
-  Future<void> addToFavorites(int scheduleId) async {
-    try {
-      await _scheduleService.addToFavorites(scheduleId);
-      fetchFavorites(); // Refresh favorite schedules
-      Get.snackbar("Success", "Schedule added to favorites!");
-    } catch (e) {
-      Get.snackbar("Error", "Failed to add to favorites: $e");
-    }
-  }
+void addToFavorites(int scheduleId) async {
+  try {
+    // Call the service method
+    await _scheduleService.addFavorite(scheduleId);
+    
+    // Refresh the favorites from the backend
+    await fetchFavoriteSchedules();
 
-  // ✅ Remove a schedule from favorites
-  Future<void> removeFromFavorites(int scheduleId) async {
+    Get.snackbar(
+      "Success",
+      "Added to favorites",
+    );
+  } catch (e) {
+    Get.snackbar(
+      "Error",
+      "Failed to add to favorites: $e",
+    );
+  }
+}
+
+  void removeFromFavorites(int scheduleId) async {
     try {
-      await _scheduleService.removeFromFavorites(scheduleId);
-      fetchFavorites(); // Refresh favorite schedules
-      Get.snackbar("Success", "Schedule removed from favorites!");
+      await _scheduleService.removeFavorite(scheduleId);
+      favoriteSchedules.removeWhere((s) => s.id == scheduleId);
+      Get.snackbar("Success", "Removed from favorites");
     } catch (e) {
       Get.snackbar("Error", "Failed to remove from favorites: $e");
     }
@@ -146,7 +171,8 @@ class ScheduleController extends GetxController {
         Get.snackbar("Success", "Class added successfully!");
       }
     } catch (e) {
-      Get.snackbar("Error", "Failed to add class: $e");
+      print("failed to add class $e");
+      Get.snackbar("Error", "Failed to add class");
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jedweli/controllers/schedule_controller.dart';
 import '../services/storage_service.dart';
 import '../routes/app_routes.dart';
 
@@ -12,6 +13,8 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   final StorageService _storageService = Get.find<StorageService>();
+  final ScheduleController _scheduleController = Get.find<ScheduleController>();
+
 
   @override
   void initState() {
@@ -25,6 +28,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
       // ✅ Ensure GetStorage is fully loaded
       await Future.delayed(const Duration(seconds: 2)); // Simulated splash delay
+      // ✅ Fetch schedules at startup
+      await _scheduleController.fetchSchedules();
       await Get.putAsync(() async => StorageService()); // ✅ Ensure StorageService is loaded
 
       // ✅ Check if user is logged in
@@ -50,6 +55,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Image.asset(
           'assets/logo.png',
           width: 300,
+
         ),
       ),
     );

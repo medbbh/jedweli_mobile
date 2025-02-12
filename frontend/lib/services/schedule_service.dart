@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../models/favorite_model.dart';
 import '../models/schedule_model.dart';
 import '../models/class_model.dart';
 import 'storage_service.dart';
@@ -62,7 +63,7 @@ class ScheduleService extends GetConnect {
   // ✅ Fetch Favorite Schedules
   Future<List<ScheduleModel>> fetchFavorites() async {
     try {
-      final response = await get('favorites', headers: _getHeaders());
+      final response = await get('favorites/', headers: _getHeaders());
 
       if (response.statusCode == 200) {
         return (response.body as List)
@@ -77,24 +78,51 @@ class ScheduleService extends GetConnect {
   }
 
   // ✅ Add Schedule to Favorites
-  Future<void> addToFavorites(int scheduleId) async {
+  Future<List<FavoriteModel>> getFavoriteEntries() async {
+    final response = await get(
+      'favorites/',
+      headers: _getHeaders(),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = response.body;
+      return data.map((json) => FavoriteModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to fetch favorite entries: ${response.body}');
+    }
+  }
+
+  Future<void> addFavorite(int scheduleId) async {
     final response = await post(
       'favorites/',
       {'schedule': scheduleId},
       headers: _getHeaders(),
     );
 
-    if (response.statusCode != 201) {
-      throw Exception('Failed to add to favorites: ${response.body}');
+    // Treat 201 (created) or 200 (already exists with a message) as success.
+    if (response.statusCode == 201 || 
+        (response.statusCode == 200 && response.body['message'] != null)) {
+      // Success – do nothing (or you could log the message if needed)
+      return;
+    } else {
+      throw Exception('Failed to add favorite: ${response.body}');
     }
   }
 
-  // ✅ Remove Schedule from Favorites
-  Future<void> removeFromFavorites(int scheduleId) async {
-    final response = await delete('favorites/$scheduleId/', headers: _getHeaders());
+  Future<void> removeFavorite(int scheduleId) async {
+    final favorites = await getFavoriteEntries();
+    final favoriteEntry = favorites.firstWhere(
+          (f) => f.scheduleId == scheduleId,
+      orElse: () => throw Exception('Favorite entry not found for schedule $scheduleId'),
+    );
+
+    final response = await delete(
+      'favorites/${favoriteEntry.id}/',
+      headers: _getHeaders(),
+    );
 
     if (response.statusCode != 204) {
-      throw Exception('Failed to remove from favorites: ${response.body}');
+      throw Exception('Failed to remove favorite: ${response.body}');
     }
   }
 
@@ -133,7 +161,7 @@ class ScheduleService extends GetConnect {
     required String location,
   }) async {
     final response = await post(
-      'classes',
+      'classes/',
       {
         'schedule': scheduleId,
         'name': name,

@@ -2,6 +2,9 @@ from rest_framework import serializers
 from .models import Schedule, Class, Favorite
 
 class ClassSerializer(serializers.ModelSerializer):
+    start_time = serializers.TimeField(format="%H:%M", input_formats=["%H:%M"])
+    end_time = serializers.TimeField(format="%H:%M", input_formats=["%H:%M"])
+    
     class Meta:
         model = Class
         fields = '__all__'
