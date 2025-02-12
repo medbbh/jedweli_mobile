@@ -1,11 +1,12 @@
 import 'package:get/get.dart';
-import 'package:jedweli/screens/splash_screen.dart';
-import '../screens/auth/login_screen.dart';
-import '../screens/auth/otp_screen.dart';
-import '../screens/auth/register_screen.dart';
-import '../screens/home/home_screen.dart';
-import '../screens/home/schedules_screen.dart';
+import 'package:jedweli/features/splash/presentation/pages/splash_screen.dart';
+import 'package:jedweli/features/auth/presentation/pages/login_screen.dart';
+import 'package:jedweli/features/auth/presentation/pages/otp_screen.dart';
+import 'package:jedweli/features/auth/presentation/pages/register_screen.dart';
+import 'package:jedweli/features/home/presentation/pages/home_screen.dart';
+import 'package:jedweli/features/home/presentation/pages/schedules_screen.dart';
 
+/// A class containing all route names and the corresponding GetPage definitions.
 class AppRoutes {
   static const splash = '/splash';
   static const login = '/login';
@@ -15,8 +16,9 @@ class AppRoutes {
   static const schedules = '/schedules';
   static const scheduleDetail = '/schedule-detail';
 
+  /// The list of GetPage routes for the application.
   static final routes = [
-    GetPage(name: splash, page: () => SplashScreen()),
+    GetPage(name: splash, page: () => const SplashScreen()),
     GetPage(name: login, page: () => LoginScreen()),
     GetPage(name: otp, page: () => OtpScreen()),
     GetPage(name: register, page: () => RegisterScreen()),
