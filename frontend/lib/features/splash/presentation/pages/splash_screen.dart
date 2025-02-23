@@ -8,7 +8,7 @@ import 'package:jedweli/routes/app_routes.dart';
 /// A splash screen that initializes the app and navigates to the appropriate screen
 /// based on the user’s authentication status.
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   _SplashScreenState createState() => _SplashScreenState();
@@ -45,6 +45,13 @@ class _SplashScreenState extends State<SplashScreen> {
       debugPrint("[SplashScreen] User logged in: $isLoggedIn");
 
       if (isLoggedIn) {
+        // ✅ Fetch schedules if user is logged in
+        await _scheduleController.fetchSchedules();
+
+        // ✅ Load favorites (if applicable)
+        final favoriteController = Get.find<FavoriteController>();
+        await favoriteController.loadFavorites();
+        
         Get.offAllNamed(AppRoutes.home);
       } else {
         Get.offAllNamed(AppRoutes.login);

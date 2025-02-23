@@ -29,7 +29,6 @@ Future<ClassModel?> showClassDialog({
   final List<String> days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   String? selectedDay = existingClass?.day;
   String errorMessage = '';
-  bool isLoading = false;
 
   // Helper function to convert a TimeOfDay into minutes since midnight.
   int toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
@@ -100,7 +99,6 @@ Future<ClassModel?> showClassDialog({
       }
     }
 
-    isLoading = true;
     // Show a loading dialog while the network call is made.
     final AwesomeDialog loadingDialog = AwesomeDialog(
       context: Get.context!,
@@ -138,7 +136,7 @@ Future<ClassModel?> showClassDialog({
         dialog.dismiss();
         completer.complete(newClass);
       } else {
-        final ClassModel updatedModel = existingClass!.copyWith(
+        final ClassModel updatedModel = existingClass.copyWith(
           name: name,
           instructor: instructor,
           day: selectedDay,
@@ -153,7 +151,6 @@ Future<ClassModel?> showClassDialog({
       }
     } catch (e) {
       loadingDialog.dismiss();
-      isLoading = false;
       errorMessage = 'Failed Updating Class. Please try again.';
       AwesomeDialog(
         context: Get.context!,

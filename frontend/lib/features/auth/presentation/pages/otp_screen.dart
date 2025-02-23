@@ -5,26 +5,16 @@ import '../../../../shared/widgets/custom_input.dart';
 import '../../../../shared/widgets/custom_button.dart';
 
 /// A screen to verify a one-time password (OTP) sent to the user.
-/// Relies on [AuthController] for OTP validation.
+/// It works for both **account verification (phone)** and **password reset (email)**.
 class OtpScreen extends StatelessWidget {
   final AuthController authController = Get.find<AuthController>();
 
-  OtpScreen({Key? key}) : super(key: key);
+  OtpScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // The server might have sent a message to show, e.g. “OTP sent to your phone”.
-    final String? message = Get.arguments?['message'];
-    final String? username = Get.arguments?['username'];
-
-    // If the user arrived here without arguments, redirect to login.
-    if (message == null || username == null) {
-      Get.offAllNamed('/login');
-      return const Scaffold(body: Center(child: Text("Redirecting...")));
-    }
-
-    // Pre-fill the controller’s username if needed.
-    authController.usernameController.text = username;
+    // ✅ Get whether this OTP is for password reset
+    final bool isPasswordReset = Get.arguments?['isPasswordReset'] ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Verify OTP')),
@@ -33,20 +23,29 @@ class OtpScreen extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              message,
+              isPasswordReset
+                  ? "Enter the OTP sent to your email to reset your password."
+                  : "Enter the OTP sent to your phone number to verify your account.",
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 16),
+
+            // ✅ OTP Input Field
             CustomInput(
               label: 'Enter OTP',
               controller: authController.otpController,
               inputType: TextInputType.number,
             ),
             const SizedBox(height: 24),
+
+            // ✅ Verify OTP Button
             Obx(
               () => CustomButton(
                 label: 'Verify',
-                onPressed: authController.isLoading.value ? null : authController.verifyOtp,
+                onPressed: authController.isLoading.value
+                    ? null
+                    : () => authController.verifyOtp(isPasswordReset),
                 isLoading: authController.isLoading.value,
               ),
             ),

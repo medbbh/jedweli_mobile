@@ -10,8 +10,14 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = ['phone_number', 'email']
 
 class OTP(models.Model):
+    OTP_TYPE_CHOICES = [
+        ('phone', 'Phone Verification'),
+        ('email', 'Password Reset'),
+    ]
+
     phone_number = models.CharField(max_length=8, unique=True)
     code = models.CharField(max_length=6)  
+    otp_type = models.CharField(max_length=10, choices=OTP_TYPE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
     expiry_time = models.DateTimeField()
 

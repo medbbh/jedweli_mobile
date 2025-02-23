@@ -3,17 +3,12 @@ import 'package:get/get.dart';
 
 // Controllers
 import 'package:jedweli/features/home/presentation/controllers/schedule_controller.dart';
-import '../../features/favorites/presentation/controllers/favorite_controller.dart';
+import 'package:jedweli/features/favorites/presentation/controllers/favorite_controller.dart';
 
 // Services & Routes
-import '../../core/services/storage_service.dart';
-import '../../routes/app_routes.dart';
+import 'package:jedweli/core/services/storage_service.dart';
+import 'package:jedweli/routes/app_routes.dart';
 
-/// A navigation drawer listing the user’s schedules and favorites.
-/// 
-/// - Schedules come from [ScheduleController].
-/// - Favorites come from [FavoriteController].
-/// - Includes a logout option at the bottom.
 class DrawerMenu extends StatelessWidget {
   const DrawerMenu({Key? key}) : super(key: key);
 
@@ -24,128 +19,159 @@ class DrawerMenu extends StatelessWidget {
     final favoriteController = Get.find<FavoriteController>();
 
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          // Drawer Header
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Colors.blueAccent),
-            child: Center(
-              child: Text(
-                "Schedules",
-                style: TextStyle(fontSize: 24, color: Colors.white),
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Drawer Header with Logo and Title
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                color: Colors.blueAccent,
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    'assets/logo.png',
+                    fit: BoxFit.cover,
+                  ),
+                ],
               ),
             ),
-          ),
 
-          // My Schedules Section
-          Obx(() {
-            final allSchedules = scheduleController.schedules;
-            if (allSchedules.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text("No schedules available."),
-              );
-            }
-
-            return ExpansionTile(
-              title: Text(
-                "📌 My Schedules (${allSchedules.length})",
-              ),
-              initiallyExpanded: true,
-              children: allSchedules.map((schedule) {
-                final scheduleId = schedule.id;
-                final isFav = favoriteController.isFavorite(scheduleId);
-
-                return ListTile(
-                  title: Text(schedule.title),
-                  onTap: () {
-                    // When tapping a schedule, select it and navigate to details
-                    scheduleController.selectSchedule(schedule);
-                    Get.back(); // Close the drawer
-                    Future.delayed(Duration.zero, () {
-                      // Navigate to your schedule detail/home screen
-                      Get.toNamed(AppRoutes.home, arguments: scheduleId);
-                    });
-                  },
-                  trailing: IconButton(
-                    icon: Icon(
-                      isFav ? Icons.favorite : Icons.favorite_border,
-                      color: isFav ? Colors.red : null,
-                    ),
-                    onPressed: () {
-                      if (isFav) {
-                        favoriteController.removeFavorite(scheduleId);
-                      } else {
-                        favoriteController.addFavorite(scheduleId);
-                      }
+            // Expanded section for main content
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  // My Schedules Section
+                  Obx(() {
+                    final allSchedules = scheduleController.schedules;
+                    final validSchedules =
+                    allSchedules.where((s) => s != null).toList();
+                    if (validSchedules.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text("No schedules available."),
+                      );
+                    }
+                    return ExpansionTile(
+                      leading: const Icon(Icons.folder_open,
+                          color: Colors.blueAccent),
+                      title: Text("My Schedules (${validSchedules.length})"),
+                      initiallyExpanded: true,
+                      children: validSchedules.map((schedule) {
+                        final scheduleId = schedule.id;
+                        final isFav = favoriteController.isFavorite(scheduleId);
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 4),
+                          title: Text(schedule.title),
+                          onTap: () {
+                            scheduleController.selectSchedule(schedule);
+                            Get.back(); // Close the drawer
+                            Future.delayed(Duration.zero, () {
+                              Get.toNamed(AppRoutes.home,
+                                  arguments: scheduleId);
+                            });
+                          },
+                          trailing: IconButton(
+                            icon: Icon(
+                              isFav
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isFav ? Colors.red : Colors.grey,
+                            ),
+                            onPressed: () {
+                              if (isFav) {
+                                favoriteController.removeFavorite(scheduleId);
+                              } else {
+                                favoriteController.addFavorite(scheduleId);
+                              }
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  }),
+                  // Favorite Schedules Section
+                  Obx(() {
+                    final favoriteEntries = favoriteController.favoriteEntries;
+                    if (favoriteEntries.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text("No favorites yet."),
+                      );
+                    }
+                    final favoriteSchedules = favoriteEntries
+                        .map((fav) => scheduleController.schedules
+                        .firstWhereOrNull((s) => s.id == fav.scheduleId))
+                        .where((s) => s != null)
+                        .toList();
+                    return ExpansionTile(
+                      leading:
+                      const Icon(Icons.star, color: Colors.amber),
+                      title: Text(
+                          "Favorite Schedules (${favoriteSchedules.length})"),
+                      initiallyExpanded: false,
+                      children: favoriteSchedules.map((schedule) {
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 4),
+                          title: Text(schedule!.title),
+                          onTap: () {
+                            scheduleController.selectSchedule(schedule);
+                            Get.back();
+                            Future.delayed(Duration.zero, () {
+                              Get.toNamed(AppRoutes.scheduleDetail,
+                                  arguments: schedule.id);
+                            });
+                          },
+                          trailing: IconButton(
+                            icon: const Icon(Icons.remove_circle,
+                                color: Colors.red),
+                            onPressed: () {
+                              favoriteController.removeFavorite(schedule.id);
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  }),
+                  // New Schedule Button
+                  ListTile(
+                    leading: const Icon(Icons.add, color: Colors.green),
+                    title: const Text("New Schedule"),
+                    onTap: () {
+                      Get.toNamed(AppRoutes.createSchedule);
                     },
                   ),
-                );
-              }).toList(),
-            );
-          }),
-
-          // Favorite Schedules Section
-          Obx(() {
-            final favoriteEntries = favoriteController.favoriteEntries;
-            if (favoriteEntries.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text("No favorites yet."),
-              );
-            }
-
-            // Build a list of full ScheduleModels for each favorite entry
-            // so we can display schedule titles, IDs, etc.
-            final favoriteSchedules = favoriteEntries
-                .map((fav) => scheduleController.schedules
-                    .firstWhereOrNull((s) => s.id == fav.scheduleId))
-                .whereType() // Filter out any null if schedule not found
-                .toList();
-
-            return ExpansionTile(
-              title: Text(
-                "⭐ Favorite Schedules (${favoriteSchedules.length})",
-              ),
-              initiallyExpanded: false,
-              children: favoriteSchedules.map((schedule) {
-                return ListTile(
-                  title: Text(schedule.title),
-                  onTap: () {
-                    scheduleController.selectSchedule(schedule);
-                    Get.back();
-                    Future.delayed(Duration.zero, () {
-                      Get.toNamed(AppRoutes.scheduleDetail, arguments: schedule.id);
-                    });
-                  },
-                  trailing: IconButton(
-                    icon: const Icon(Icons.remove_circle, color: Colors.red),
-                    onPressed: () {
-                      favoriteController.removeFavorite(schedule.id);
+                  // Shared With Me
+                  ListTile(
+                    leading:
+                    const Icon(Icons.group, color: Colors.orange),
+                    title: const Text("Shared With Me"),
+                    onTap: () {
+                      Get.toNamed(AppRoutes.sharedSchedules);
                     },
                   ),
-                );
-              }).toList(),
-            );
-          }),
-
-          const SizedBox(height: 30),
-
-          // Logout Button
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
-              "Logout",
-              style: TextStyle(color: Colors.red),
+                ],
+              ),
             ),
-            onTap: () {
-              // Clear tokens and navigate to login
-              storageService.clearTokens();
-              Get.offAllNamed(AppRoutes.login);
-            },
-          ),
-        ],
+            // Divider and Logout button fixed at the bottom
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text(
+                "Logout",
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                storageService.clearTokens();
+                Get.offAllNamed(AppRoutes.login);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

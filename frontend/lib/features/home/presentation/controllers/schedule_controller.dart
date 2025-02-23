@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:jedweli/core/services/storage_service.dart';
 import '../../data/models/schedule_model.dart';
 import '../../data/datasources/schedule_service.dart';
 
@@ -17,14 +18,20 @@ class ScheduleController extends GetxController {
   List<ScheduleModel> get schedules => _schedules;
   Rxn<ScheduleModel> get selectedSchedule => _selectedSchedule;
 
+
   @override
   void onInit() {
     super.onInit();
-    // Optionally fetch data immediately
-    // fetchSchedules();
-    // fetchFavoriteSchedules();
+    // ✅ Fetch schedules when the controller is initialized
+    _loadSchedulesIfLoggedIn();
   }
 
+  Future<void> _loadSchedulesIfLoggedIn() async {
+    final storageService = Get.find<StorageService>();
+    if (storageService.isLoggedIn()) {
+      await fetchSchedules();
+    }
+  }
   /// Convenience method to load both schedules and favorites in one go.
   Future<void> refreshData() async {
     await fetchSchedules();

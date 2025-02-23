@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jedweli/routes/app_routes.dart';
 import '../controllers/auth_controller.dart';
 import '../../../../shared/widgets/custom_input.dart';
 import '../../../../shared/widgets/custom_button.dart';
@@ -9,7 +10,7 @@ import '../../../../shared/widgets/custom_button.dart';
 class LoginScreen extends StatelessWidget {
   final AuthController authController = Get.put(AuthController());
 
-  LoginScreen({Key? key}) : super(key: key);
+  LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -79,9 +80,9 @@ class LoginScreen extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {
-                        // TODO: Implement "Forgot password?" flow
-                      },
+                        onPressed: () {
+                          Get.toNamed(AppRoutes.passwordReset);
+                        },
                       child: const Text('Forgot Password?', style: TextStyle(color: Colors.blue)),
                     ),
                   ),

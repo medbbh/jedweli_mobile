@@ -27,7 +27,8 @@ class AuthController extends GetxController {
   final TextEditingController otpController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   @override
   void onClose() {
@@ -44,76 +45,91 @@ class AuthController extends GetxController {
   ///
   /// If the API indicates an OTP is required, navigates to the OTP screen with the server’s message.
   Future<void> login() async {
-    isLoading.value = true;
-    errorMessage.value = null;
+  isLoading.value = true;
+  errorMessage.value = null;
 
-    try {
-      final response = await _authService.login({
-        'username': usernameController.text.trim(),
-        'password': passwordController.text.trim(),
-      });
+  try {
+    final response = await _authService.login({
+      'username': usernameController.text.trim(),
+      'password': passwordController.text.trim(),
+    });
 
-      if (response.statusCode == 200) {
-        final responseBody = response.body;
-        if (responseBody['access'] != null && responseBody['refresh'] != null) {
-          // Save tokens if returned
-          _storageService.saveTokens(responseBody['access'], responseBody['refresh']);
-
-          // Optionally refresh schedule & favorites
-          final scheduleController = Get.find<ScheduleController>();
-          await scheduleController.refreshData();
-
-          // Navigate to home
-          Get.offAllNamed(AppRoutes.home);
-        } else {
-          // If your server logic requires OTP first, show the OTP screen
-          Get.offAllNamed(
-            AppRoutes.otp,
-            arguments: {
-              'username': usernameController.text.trim(),
-              'message': responseBody['message'],
-            },
-          );
-        }
+    if (response.statusCode == 200) {
+      final responseBody = response.body;
+      
+      if (responseBody['access'] != null && responseBody['refresh'] != null) {
+        // ✅ If phone is verified, log in normally
+        _storageService.saveTokens(responseBody['access'], responseBody['refresh']);
+        // ✅ Fetch schedules immediately after login
+        final scheduleController = Get.find<ScheduleController>();
+        await scheduleController.fetchSchedules();
+        Get.offAllNamed(AppRoutes.home);
       } else {
-        // Extract an error from the response body if available.
-        errorMessage.value = response.body['error'] ?? 'Login failed';
+        // ❌ If phone is not verified, redirect to OTP screen
+        Get.offAllNamed(
+          AppRoutes.otp,
+          arguments: {
+            'phone_number': phoneController.text.trim(),
+            'isPasswordReset': false, // This is for login OTP verification
+          },
+        );
       }
-    } catch (e) {
-      errorMessage.value = "An error occurred during login: $e";
-    } finally {
-      isLoading.value = false;
+    } else {
+      errorMessage.value = response.body['error'] ?? 'Login failed';
     }
+  } catch (e) {
+    errorMessage.value = "An error occurred during login: $e";
+  } finally {
+    isLoading.value = false;
   }
+}
+
 
   /// Verifies the one-time password (OTP) and, if successful, saves the tokens.
-  Future<void> verifyOtp() async {
-    isLoading.value = true;
-    errorMessage.value = null;
+  Future<void> verifyOtp(bool isPasswordReset) async {
+  isLoading.value = true;
+  errorMessage.value = null;
 
-    try {
-      final response = await _authService.verifyOtp({
-        'username': usernameController.text.trim(),
-        'otp': otpController.text.trim(),
-      });
+  final requestData = {
+    'otp': otpController.text.trim(),
+    'is_password_reset': isPasswordReset,  // ✅ Tell backend it's a password reset OTP
+  };
 
-      if (response.statusCode == 200) {
+  debugPrint("📡 [AuthController] Sending OTP Verification Request: $requestData");
+
+  try {
+    final response = await _authService.verifyOtp(requestData);
+
+    debugPrint("📡 [AuthController] verifyOtp status: ${response.statusCode}");
+    debugPrint("📡 [AuthController] verifyOtp body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      if (isPasswordReset) {
+        // ✅ Redirect to Password Reset Form (Not Verify-OTP)
+        Get.offAllNamed(AppRoutes.passwordResetConfirm);
+      } else {
+        // ✅ If phone verification, save tokens and go to home
         final body = response.body;
-        if (body != null && body['access'] != null && body['refresh'] != null) {
+        if (body['access'] != null && body['refresh'] != null) {
           _storageService.saveTokens(body['access'], body['refresh']);
           Get.offAllNamed(AppRoutes.home);
         } else {
-          errorMessage.value = 'OTP verification: invalid response from server.';
+          errorMessage.value = 'OTP verification failed.';
         }
-      } else {
-        errorMessage.value = response.body['error'] ?? 'OTP verification failed';
       }
-    } catch (e) {
-      errorMessage.value = "An error occurred during OTP verification: $e";
-    } finally {
-      isLoading.value = false;
+    } else {
+      errorMessage.value = response.body['error'] ?? 'Invalid OTP.';
     }
+  } catch (e) {
+    errorMessage.value = "An error occurred: $e";
+  } finally {
+    isLoading.value = false;
   }
+}
+
+
+
+
 
   /// Registers a new user with the server, navigating to the login screen if successful.
   Future<void> register() async {
@@ -130,8 +146,14 @@ class AuthController extends GetxController {
       });
 
       if (response.statusCode == 201) {
-        Get.snackbar('Success', 'Registration successful');
-        Get.offAllNamed(AppRoutes.login);
+        // Navigate to OTP screen for verification
+        Get.offAllNamed(
+          AppRoutes.otp,
+          arguments: {
+            'phone_number': phoneController.text.trim(),
+            'isPasswordReset': false, // This is for registration OTP
+          },
+        );
       } else {
         errorMessage.value = response.body['error'] ?? 'Registration failed';
       }
@@ -147,4 +169,73 @@ class AuthController extends GetxController {
     _storageService.clearTokens();
     Get.offAllNamed(AppRoutes.login);
   }
+
+  /// Sends an OTP to the user's email for password reset.
+Future<void> requestPasswordReset() async {
+  isLoading.value = true;
+  errorMessage.value = null;
+
+  try {
+    final response = await _authService.requestPasswordReset({
+      'email': emailController.text.trim(),
+    });
+
+    if (response.statusCode == 200) {
+      // ✅ Save phone number before navigating
+      final phoneNumber = response.body['phone_number'] ?? '';
+      if (phoneNumber.isNotEmpty) {
+        phoneController.text = phoneNumber;
+      }
+
+      Get.snackbar('Success', 'Check your email for the OTP');
+      Get.toNamed(AppRoutes.otp, arguments: {
+        'phone_number': phoneController.text.trim(),
+        'isPasswordReset': true,  // ✅ Tell OTP screen it's for password reset
+      });
+    } else {
+      errorMessage.value = response.body['error'] ?? 'Failed to send OTP.';
+    }
+  } catch (e) {
+    errorMessage.value = "An error occurred: $e";
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+
+  /// Confirms OTP and resets the password
+  Future<void> confirmPasswordReset() async {
+  isLoading.value = true;
+  errorMessage.value = null;
+
+  final requestData = {
+    'otp': otpController.text.trim(),
+    'password': passwordController.text.trim(),
+    'confirm_password': confirmPasswordController.text.trim(),
+  };
+
+  debugPrint("📡 [AuthController] Sending Password Reset Request: $requestData");
+
+  try {
+    final response = await _authService.confirmPasswordReset(requestData);
+
+    debugPrint("📡 [AuthController] confirmPasswordReset status: ${response.statusCode}");
+    debugPrint("📡 [AuthController] confirmPasswordReset body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      Get.snackbar('Success', 'Password reset successful. Please log in.');
+      Get.offAllNamed(AppRoutes.login);
+    } else {
+      errorMessage.value = response.body['error'] ?? 'Password reset failed';
+    }
+  } catch (e) {
+    errorMessage.value = "❌ An error occurred during password reset: $e";
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+
+
+
 }

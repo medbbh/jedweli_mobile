@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:responsive_framework/responsive_framework.dart';
+import 'package:jedweli/shared/widgets/show_class_dialog.dart';
+import 'package:jedweli/shared/widgets/class_list.dart';
+import 'package:jedweli/shared/widgets/drawer_menu.dart';
+import 'package:jedweli/shared/widgets/custom_button.dart';
+import 'package:jedweli/routes/app_routes.dart';
 import '../controllers/schedule_controller.dart';
-import '../../data/models/schedule_model.dart';
-import '../../../../shared/widgets/show_class_dialog.dart';
-import '../../../../shared/widgets/class_list.dart';
-import '../../../../shared/widgets/drawer_menu.dart';
-import '../../../../shared/widgets/custom_button.dart';
-import '../../../../core/utils/constants.dart';
 
-/// The main "Home" screen that displays the currently selected schedule.
-/// Allows creating a new class and sharing the schedule link.
 class HomeScreen extends StatelessWidget {
-  HomeScreen({Key? key}) : super(key: key);
+  HomeScreen({super.key});
 
   final ScheduleController _scheduleController = Get.find<ScheduleController>();
 
   @override
   Widget build(BuildContext context) {
-    // Check if a schedule ID was passed in
+    // Check for an optional schedule ID argument.
     final int? scheduleId = Get.arguments as int?;
 
     if (scheduleId != null) {
-      // Attempt to load that schedule
       _scheduleController.getScheduleById(scheduleId).then((foundSchedule) {
         if (foundSchedule == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -31,64 +28,122 @@ class HomeScreen extends StatelessWidget {
       });
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Schedules")),
-      drawer: const DrawerMenu(),
-      body: Obx(() {
-        final schedule = _scheduleController.selectedSchedule.value;
-        if (schedule == null) {
-          return const Center(
-            child: Text(
-              "Select a schedule from the drawer or create a new one.",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18),
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                schedule.title,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+    return SafeArea(
+      child: Scaffold(
+        // A colorful AppBar with an icon and centered title.
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.schedule, color: Colors.white),
+              SizedBox(width: 8),
+              Text(
+                "My Schedules",
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
               ),
+            ],
+          ),
+          centerTitle: true,
+          elevation: 4,
+          backgroundColor: Colors.blue,
+        ),
+        drawer: const DrawerMenu(),
+        // Add a gradient background to give the home screen some life.
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade100, Colors.blue.shade50],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
-            Expanded(
-              child: ClassListScreen(classes: schedule.classes),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  CustomButton(
-                    width: 180,
-                    label: "Create Class",
-                    onPressed: () => _addClass(schedule.id),
-                    icon: Icons.add,
-                    backgroundColor: Colors.green,
+          ),
+          child: MaxWidthBox(
+            maxWidth: 1200,
+            child: Obx(() {
+              final schedule = _scheduleController.selectedSchedule.value;
+              if (schedule == null) {
+                return const Center(
+                  child: Text(
+                    "Select a schedule from the drawer or create a new one.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, color: Colors.blueGrey),
                   ),
-                  CustomButton(
-                    label: "Share",
-                    onPressed: () {
-                      final link = "${Constants.appBaseUrl}/schedule/${schedule.id}";
-                      Get.snackbar("Share", "Link copied: $link");
-                    },
-                    icon: Icons.share,
-                    backgroundColor: Colors.blue,
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // A styled card for the schedule title with an icon.
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 16.0,
+                          horizontal: 8.0,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.calendar_today,
+                              color: Colors.blue,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              schedule.title,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // The list of classes.
+                  Expanded(child: ClassListScreen(classes: schedule.classes)),
+                  // Action buttons at the bottom.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        CustomButton(
+                          width: 180,
+                          label: "Create Class",
+                          onPressed: () => _addClass(schedule.id),
+                          icon: Icons.add,
+                          backgroundColor: Colors.green,
+                        ),
+                        CustomButton(
+                          width: 180,
+                          label: "Share Schedule",
+                          onPressed: () => Get.toNamed(
+                              AppRoutes.shareSchedule, arguments: schedule),
+                          icon: Icons.share,
+                          backgroundColor: Colors.blue,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-            ),
-          ],
-        );
-      }),
+              );
+            }),
+          ),
+        ),
+      ),
     );
   }
 
-  /// Shows a dialog to add a new class, then calls [addClassToSchedule] on success.
   void _addClass(int scheduleId) async {
     final newClass = await showClassDialog(scheduleId: scheduleId);
     if (newClass != null) {
@@ -101,6 +156,12 @@ class HomeScreen extends StatelessWidget {
         endTime: newClass.endTime,
         location: newClass.location,
       );
+      // Use update() on the reactive selectedSchedule to force a UI rebuild.
+      _scheduleController.selectedSchedule.update((s) {
+        if (s != null) {
+          s.classes.add(newClass);
+        }
+      });
       Get.snackbar("Success", "Class added successfully!");
     }
   }
