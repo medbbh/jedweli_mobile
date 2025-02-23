@@ -14,7 +14,7 @@ Jedweli Mobile allows users to:
 
 - Create, update, and delete schedules for various activities
 - Create, update, and delete classes or events
-- Share schedules with others
+- Share schedules with others and grant them access
 
 The app consists of:
 - A Flutter frontend (built using Dart)
