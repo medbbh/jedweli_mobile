@@ -13,7 +13,7 @@ class CustomInput extends StatelessWidget {
   final VoidCallback? onSuffixIconPressed;
 
   const CustomInput({
-    Key? key,
+    super.key,
     required this.label,
     required this.controller,
     this.inputType = TextInputType.text,
@@ -21,7 +21,7 @@ class CustomInput extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.onSuffixIconPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

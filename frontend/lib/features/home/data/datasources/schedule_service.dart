@@ -110,6 +110,49 @@ class ScheduleService extends GetConnect {
     }
   }
 
+    /// Toggle schedule sharing (Enable/Disable public sharing)
+  Future<Response> toggleSharing(int scheduleId) async {
+    return await post("schedules/$scheduleId/toggle-sharing/", {}, headers: _getHeaders(),);
+  }
+
+  /// Fetch list of users with access to a schedule
+  Future<Response> getScheduleAccessList(int scheduleId) async {
+    return await get("schedules/$scheduleId/access-list/", headers: _getHeaders(),);
+  }
+
+  /// Grant access to a user (View/Edit)
+  Future<Response> grantAccess(int scheduleId, String username, String permission) async {
+    return await post(
+      "schedules/$scheduleId/access/",
+      {"username": username, "permission": permission},
+      headers: _getHeaders(),
+    );
+  }
+
+  /// Revoke access from a user
+  Future<Response> revokeAccess(int scheduleId, String username) async {
+    return await delete("schedules/$scheduleId/access/$username/",headers: _getHeaders(),);
+  }
+
+  /// Fetch shared-with-me schedules for the authenticated user.
+  Future<Response> getSharedWithMeSchedules() async {
+    return await get("shared-with-me/", headers: _getHeaders());
+  }
+
+  Future<ScheduleModel?> fetchSharedScheduleByShareableId(String shareableId) async {
+    try {
+      final response = await get("shared/$shareableId/", headers: _getHeaders());
+      debugPrint("[ScheduleService] fetchSharedScheduleByShareableId($shareableId) -> ${response.statusCode}: ${response.body}");
+      if (response.statusCode == 200 && response.body is Map) {
+        return ScheduleModel.fromJson(response.body);
+      }
+      throw Exception("Failed to fetch shared schedule: ${response.body}");
+    } catch (e) {
+      debugPrint("❌ [ScheduleService] Error fetching shared schedule: $e");
+      return null;
+    }
+  }
+
 
   // -----------------------
   // Classes

@@ -8,7 +8,7 @@ import 'create_schedule_screen.dart';
 ///
 /// Tapping on a schedule navigates to the schedule detail (HomeScreen) with [AppRoutes.scheduleDetail].
 class SchedulesScreen extends StatelessWidget {
-  const SchedulesScreen({Key? key}) : super(key: key);
+  const SchedulesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

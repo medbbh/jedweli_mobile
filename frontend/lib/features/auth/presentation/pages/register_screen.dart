@@ -9,7 +9,7 @@ import '../../../../shared/widgets/custom_button.dart';
 class RegisterScreen extends StatelessWidget {
   final AuthController authController = Get.put(AuthController());
 
-  RegisterScreen({Key? key}) : super(key: key);
+  RegisterScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

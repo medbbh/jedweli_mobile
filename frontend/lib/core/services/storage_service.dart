@@ -1,4 +1,5 @@
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter/widgets.dart';
 
 class StorageService {
   final _storage = GetStorage();
@@ -10,7 +11,7 @@ class StorageService {
   void saveTokens(String accessToken, String refreshToken) {
     _storage.write(_accessTokenKey, accessToken);
     _storage.write(_refreshTokenKey, refreshToken);
-    print("Tokens saved: Access - $accessToken, Refresh - $refreshToken"); // ✅ Debugging
+    debugPrint("Tokens saved: Access - $accessToken, Refresh - $refreshToken"); // ✅ Debugging
   }
 
   // ✅ Get Access Token
@@ -32,6 +33,6 @@ class StorageService {
   void clearTokens() {
     _storage.remove(_accessTokenKey);
     _storage.remove(_refreshTokenKey);
-    print("Tokens cleared!"); // ✅ Debugging
+    debugPrint("Tokens cleared!"); // ✅ Debugging
   }
 }

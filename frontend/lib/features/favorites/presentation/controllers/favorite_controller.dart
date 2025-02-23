@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:jedweli/core/services/storage_service.dart';
 import '../../data/models/favorite_model.dart';
 import '../../data/datasources/favorite_service.dart';
 
@@ -16,8 +17,15 @@ class FavoriteController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Optionally load favorites immediately
-    // loadFavorites();
+    // ✅ Fetch Favorite Schedules when the controller is initialized
+    _loadFavoritesIfLoggedIn();
+  }
+
+  Future<void> _loadFavoritesIfLoggedIn() async {
+    final storageService = Get.find<StorageService>();
+    if (storageService.isLoggedIn()) {
+      await loadFavorites();
+    }
   }
 
   /// Loads all favorite entries from the API and updates [favoriteEntries].
